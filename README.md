@@ -10,6 +10,8 @@ so editing `~/.tmux.conf` edits the file in this repo.
 
 ```
 dotfiles/
+├── .gitignore
+├── .gitmodules
 ├── tmux/
 │   └── .tmux.conf
 ├── vim/
@@ -82,9 +84,8 @@ Check that the links exist: `ls -l ~/.tmux.conf ~/.vimrc ~/.zshrc ~/.vim ~/.oh-m
 - Plugins are managed by [Vundle](https://github.com/VundleVim/Vundle.vim): lightline.vim and vim-colors-solarized.
   Install with `vim +PluginInstall +qall`, update with `vim +PluginUpdate +qall`.
 - Add a plugin by putting a `Plugin '...'` line in `.vimrc` and running `:PluginInstall`.
-- Vundle installs plugins into `vim/.vim/bundle/` inside this repo. They are not part of the repo,
-  so add a `.gitignore` with the lines `vim/.vim/bundle/*` and `!vim/.vim/bundle/Vundle.vim`
-  to keep `git status` clean.
+- Vundle installs plugins into `vim/.vim/bundle/` inside this repo. They are not part of the repo:
+  `.gitignore` ignores everything there except the Vundle submodule itself.
 - System clipboard integration (`set clipboard=unnamedplus`) is commented out in `.vimrc`.
   To use it, install `vim-gtk3` and check that `vim --version | grep clipboard` shows `+clipboard`.
 
@@ -108,7 +109,14 @@ Check that the links exist: `ls -l ~/.tmux.conf ~/.vimrc ~/.zshrc ~/.vim ~/.oh-m
 | Update the submodules | `cd ~/dotfiles && git submodule update --remote --merge` |
 | Save changes | `cd ~/dotfiles && git add -A && git commit -m "..." && git push` |
 
-## Secrets
+## Secrets and `.gitignore`
 
 Never commit private keys, tokens or `.env` files. Keep machine-specific or secret settings in untracked files
 (for example `~/.zshrc.local`, sourced from `.zshrc`).
+
+`.gitignore` covers plugin installs (Vundle bundles), vim swap/undo files, shell history and caches,
+`*.local`, `.env*` and key files. It only affects untracked files: if something already committed should be
+ignored, run `git rm --cached <file>`. Before pushing, check the shell config for secrets:
+`grep -inE 'token|secret|key|password' zsh/.zshrc`.
+
+oh-my-zsh writes `cache/` and `log/` into its own folder. It ignores those itself, so they need no entry here.

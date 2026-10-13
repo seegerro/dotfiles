@@ -1,0 +1,32 @@
+# Vundle installs plugins here; only Vundle itself is a tracked submodule
+vim/.vim/bundle/*
+!vim/.vim/bundle/Vundle.vim
+
+# Vim runtime files written into ~/.vim (which is a symlink into this repo)
+*.swp
+*.swo
+*~
+vim/.vim/.netrwhist
+vim/.vim/undo/
+vim/.vim/backup/
+vim/.vim/swap/
+vim/.vim/view/
+
+# Shell history and caches
+.zsh_history
+.zcompdump*
+.zsh_sessions/
+
+# Local overrides and secrets
+*.local
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Editor and OS junk
+.DS_Store
+*.bak
+*.log
