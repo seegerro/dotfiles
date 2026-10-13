@@ -1,7 +1,9 @@
 # dotfiles
 
-Personal config for Ubuntu (GNOME Terminal), managed with [GNU Stow](https://www.gnu.org/software/stow/).
-Each top-level folder is a "package" that mirrors the home directory. Stow symlinks its contents into `~`,
+My config for Ubuntu (GNOME Terminal): **tmux**, **vim** and **zsh**, managed with
+[GNU Stow](https://www.gnu.org/software/stow/).
+
+Each top-level folder is a Stow "package" that mirrors the home directory. Stow symlinks its contents into `~`,
 so editing `~/.tmux.conf` edits the file in this repo.
 
 ## Layout
@@ -11,74 +13,102 @@ dotfiles/
 ├── tmux/
 │   └── .tmux.conf
 ├── vim/
-│   └── .vimrc
-└── bin/
-    └── bin/
-        └── dev          # tmux session/layout launcher -> ~/bin/dev
+│   ├── .vimrc
+│   └── .vim/bundle/Vundle.vim     # git submodule
+└── zsh/
+    ├── .zshrc
+    └── .oh-my-zsh                 # git submodule
 ```
 
-Adjust this list if you add or remove packages.
+Vundle and oh-my-zsh are **git submodules**, so clone with `--recurse-submodules` (see below).
 
-## Quick setup on a new machine
+## Setup on a new machine
 
 ```bash
-# 1. Install the basics
+# 1. Install the tools
 sudo apt update
-sudo apt install git stow tmux vim-gtk3 xclip wl-clipboard fzf htop
+sudo apt install git stow tmux vim zsh htop xclip wl-clipboard curl
 
-# 2. Set up an SSH key for GitHub (skip if you clone over HTTPS)
+# 2. SSH key for GitHub (skip if you clone over HTTPS)
 ssh-keygen -t ed25519 -C "you@example.com"
-cat ~/.ssh/id_ed25519.pub        # add at GitHub -> Settings -> SSH and GPG keys
-ssh -T git@github.com            # should greet you by username
+cat ~/.ssh/id_ed25519.pub          # add at GitHub -> Settings -> SSH and GPG keys
+ssh -T git@github.com              # should greet you by username
 
-# 3. Clone the repo
-git clone git@github.com:YOURNAME/dotfiles.git ~/dotfiles
+# 3. Clone the repo including the submodules
+git clone --recurse-submodules git@github.com:seegerro/dotfiles.git ~/dotfiles
 cd ~/dotfiles
+#    already cloned without submodules?
+#    git submodule update --init --recursive
 
-# 4. Remove existing default files that would conflict (Stow won't overwrite real files)
-mv ~/.bashrc ~/.bashrc.bak 2>/dev/null   # only if you stow a bash package
+# 4. Move existing files out of the way (Stow will not overwrite real files)
 mv ~/.tmux.conf ~/.tmux.conf.bak 2>/dev/null
-mv ~/.vimrc ~/.vimrc.bak 2>/dev/null
+mv ~/.vimrc     ~/.vimrc.bak     2>/dev/null
+mv ~/.vim       ~/.vim.bak       2>/dev/null
+mv ~/.zshrc     ~/.zshrc.bak     2>/dev/null
+mv ~/.oh-my-zsh ~/.oh-my-zsh.bak 2>/dev/null
 
 # 5. Create the symlinks
-stow tmux vim bin
+stow tmux vim zsh
 
-# 6. Install tmux plugin manager, then the plugins
+# 6. tmux plugins: install TPM, start tmux, then press  prefix + I  (Ctrl+Space, then capital I)
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-tmux new -s setup
-#   inside tmux press: prefix + I   (prefix is Ctrl+Space, then capital I)
+tmux
+
+# 7. vim plugins
+vim +PluginInstall +qall
+
+# 8. Make zsh the default shell (log out and back in afterwards)
+chsh -s "$(which zsh)"
 ```
 
-Make sure `~/bin` is on your `PATH` (Ubuntu adds it automatically at login if the folder exists;
-log out and back in, or run `source ~/.profile`).
+Check that the links exist: `ls -l ~/.tmux.conf ~/.vimrc ~/.zshrc ~/.vim ~/.oh-my-zsh`.
+
+## What's in each package
+
+### tmux
+- Prefix is `Ctrl+Space`. Reload the config with `prefix + r`. Requires tmux 3.2+ (for the popup).
+- Windows and panes start at 1. Splits and new windows open in the current directory:
+  `prefix + |` (side by side), `prefix + -` (stacked), `prefix + c` (new window).
+- Pane navigation `prefix + h/j/k/l`, resize with `prefix + H/J/K/L` (repeatable),
+  previous/next window with `prefix + Ctrl-h` / `Ctrl-l`.
+- `prefix + g` opens htop in a popup. Mouse mode is on. Copy mode uses vi keys (`v` to select, `y` to yank).
+- Plugins (managed by TPM): tmux-resurrect, tmux-continuum (auto-save and restore sessions),
+  minimal-tmux-status, tmux-yank (yanks go to the system clipboard).
+  Install with `prefix + I`, update with `prefix + U`.
+- After changing terminal options (`default-terminal`, `terminal-features`), detach and reattach,
+  or run `tmux kill-server` and start again.
+
+### vim
+- Plugins are managed by [Vundle](https://github.com/VundleVim/Vundle.vim): lightline.vim and vim-colors-solarized.
+  Install with `vim +PluginInstall +qall`, update with `vim +PluginUpdate +qall`.
+- Add a plugin by putting a `Plugin '...'` line in `.vimrc` and running `:PluginInstall`.
+- Vundle installs plugins into `vim/.vim/bundle/` inside this repo. They are not part of the repo,
+  so add a `.gitignore` with the lines `vim/.vim/bundle/*` and `!vim/.vim/bundle/Vundle.vim`
+  to keep `git status` clean.
+- System clipboard integration (`set clipboard=unnamedplus`) is commented out in `.vimrc`.
+  To use it, install `vim-gtk3` and check that `vim --version | grep clipboard` shows `+clipboard`.
+
+### zsh
+- `.zshrc` plus [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh) as a submodule at `~/.oh-my-zsh`.
+- Do not run the oh-my-zsh installer. The submodule already provides it, and the installer would
+  overwrite `.zshrc`.
+
+## Clipboard
+
+- tmux-yank needs `xclip` (X11) or `wl-clipboard` (Wayland). Both are installed in step 1.
+- Paste in GNOME Terminal with `Ctrl+Shift+V` (middle-click pastes the separate "primary" selection).
 
 ## Day to day
 
 | Task | Command |
 |---|---|
-| Add a new file to a package | move it into the repo, e.g. `mv ~/.gitconfig ~/dotfiles/git/`, then `stow git` |
-| Re-create links after changes | `cd ~/dotfiles && stow -R tmux vim bin` |
-| Remove a package's links | `stow -D tmux` |
+| Add a new package | `mkdir ~/dotfiles/git && mv ~/.gitconfig ~/dotfiles/git/ && cd ~/dotfiles && stow git` |
+| Re-create links after changes | `cd ~/dotfiles && stow -R tmux vim zsh` |
+| Remove a package's links | `cd ~/dotfiles && stow -D tmux` |
+| Update the submodules | `cd ~/dotfiles && git submodule update --remote --merge` |
 | Save changes | `cd ~/dotfiles && git add -A && git commit -m "..." && git push` |
-
-## tmux notes
-
-- Prefix is `Ctrl+Space`. Reload config with `prefix + r`.
-- Plugins (managed by TPM): resurrect, continuum, minimal-tmux-status, tmux-yank.
-  Install with `prefix + I`, update with `prefix + U`.
-- Sessions are saved automatically by continuum and restored when tmux starts.
-- After changing terminal-related options (`default-terminal`, `terminal-features`),
-  detach and reattach, or run `tmux kill-server` and start again.
-- `~/bin/dev` creates the dev session with my layout, or attaches if it already exists.
-
-## Clipboard
-
-- tmux-yank sends yanks to the system clipboard. It needs `xclip` (X11) or `wl-clipboard` (Wayland).
-- Paste in GNOME Terminal with `Ctrl+Shift+V`.
-- Vim needs clipboard support: `vim --version | grep clipboard` must show `+clipboard`
-  (that is what `vim-gtk3` provides).
 
 ## Secrets
 
-Never commit private keys, tokens or `.env` files. Machine-specific or secret settings go in untracked files
-such as `~/.bashrc.local`, which the shell config sources if present.
+Never commit private keys, tokens or `.env` files. Keep machine-specific or secret settings in untracked files
+(for example `~/.zshrc.local`, sourced from `.zshrc`).
